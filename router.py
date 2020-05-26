@@ -1,3 +1,4 @@
+from flask import Flask
 class Router(object):
     @staticmethod
     def build(views, app):

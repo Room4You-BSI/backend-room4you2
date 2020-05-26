@@ -1,5 +1,6 @@
 from json import dumps
-from flask import Response
+
+from flask import Flask, Response
 
 # informações sobre os posts
 posts = [
