@@ -1,5 +1,6 @@
-from json import dumps
 from flask import Response
+from json import dumps
+from app import app
 
 # informações sobre os posts
 posts = [
@@ -38,10 +39,11 @@ posts = [
     }
 ]
 
+@app.route('/', methods=["GET"])
+def home():
+    return Response(dumps([{"page": "home"}]), status=200, mimetype="application/json")
 
-class Views(object):
-    
-    # retornar posts
-    def rooms(self):
-        return Response(dumps(posts), status=200, mimetype="application/json")
 
+@app.route('/posts', methods=["GET"])
+def rooms():
+    return Response(dumps(posts), status=200, mimetype="application/json")
