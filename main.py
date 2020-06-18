@@ -100,4 +100,6 @@ posts = [
 def rooms():
     return Response(dumps(posts), status=200, mimetype="application/json")
 
-app.run(debug=True)
+if __name__ == "__main__":
+    app.run(debug=True)
+
