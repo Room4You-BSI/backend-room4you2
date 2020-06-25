@@ -20,5 +20,3 @@ def after_request(response):
     header['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
     header['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
     return response
-
-

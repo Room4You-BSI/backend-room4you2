@@ -1,12 +1,11 @@
 from flask import request, redirect, url_for, Response, abort
 from app import app, db
-from app.models import User
+from app.models import User, Post
 from flask_jwt_simple import create_jwt, jwt_required, get_jwt_identity
 
 from json import dumps
 from http import HTTPStatus
 from http.client import HTTPException
-
 
 @app.route("/add_user", methods=["GET", "POST"])
 def register():
@@ -33,6 +32,41 @@ def register():
     
     return Response(dumps({"message": "NOT AVAILABLE"}), status=403, mimetype="application/json")
 
+@app.route("/create_post", methods=["GET", "POST"])
+def create_post():
+    """Register a Post in the database."""
+    if request.method == 'POST':
+        try:
+            #print(request.form.items)
+            content = request.form.get("content")
+            print(content)
+            # title = request.form["title"]
+            # date_posted = request.form["date_posted"]
+            # image = request.form["image_file"]
+            # price = request.form["price"]
+            # rate = request.form["rate"]
+            # favorite = request.form["favorite"]
+            # address = request.form["address"]
+            # neighborhood = request.form["neighborhood"]
+            # city = request.form["city"]
+            # state = request.form["state"]
+            
+            # email = request.form["email"]
+            #current_user = User.query.filter_by(email=email).first()
+            
+            #post1 = Post(content,title,date_posted,image,price,rate,favorite,address,neighborhood,city,state,current_user.id)
+            
+            #print(post1)
+            #db.session.add(Post)
+            #db.session.commit()
+
+            return Response(dumps({"message": "SUCCESS"}), status=200, mimetype="application/json")
+
+        except HTTPException as e:
+            return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
+    return Response(dumps({"message": "SUCCESS"}), status=200, mimetype="application/json")
+
+
 @app.route("/get_profile", methods=["GET", "POST"])
 def login():
     
@@ -55,6 +89,22 @@ def login():
             return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
         
     return Response(dumps({"message": "NOT AVAILABLE"}), status=403, mimetype="application/json")
+
+@app.route('/adduser2', methods=["GET"])
+def adduser2():
+    user1 = User(name="Cassio",password="123485",email="ccas@g.com",image_file="000.jpg")
+    db.session.add(user1)
+    db.session.commit()
+    return Response(dumps([{"message": "SUCCESS"}]), status=200, mimetype="application/json")
+
+@app.route('/addpost', methods=["GET"])
+def addpost():
+    post1 = Post(content = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim",
+     title = "Titulo 1",image_file = "123.jpg",price = 250.00,rate = 50,favorite = True,address = "Rua leao de macaquinhos",neighborhood = "Bairdro dos alemaes",city = "Maracanja",state = "MA",user_id = 1)
+    db.session.add(post1)
+    db.session.commit()
+    return Response(dumps([{"message": "SUCCESS"}]), status=200, mimetype="application/json")
+
 
 @app.route('/home', methods=["GET"])
 @app.route('/', methods=["GET"])
@@ -146,4 +196,3 @@ def rooms():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
