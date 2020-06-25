@@ -2,6 +2,7 @@ from flask import request, redirect, url_for, Response, abort
 from app import app, db
 from app.models import User, Post
 from flask_jwt_simple import create_jwt, jwt_required, get_jwt_identity
+from datetime import datetime
 
 from json import dumps
 from http import HTTPStatus
@@ -33,32 +34,34 @@ def register():
     return Response(dumps({"message": "NOT AVAILABLE"}), status=403, mimetype="application/json")
 
 @app.route("/create_post", methods=["GET", "POST"])
+@jwt_required
 def create_post():
     """Register a Post in the database."""
     if request.method == 'POST':
         try:
+            
             #print(request.form.items)
             content = request.form.get("content")
-            print(content)
-            # title = request.form["title"]
-            # date_posted = request.form["date_posted"]
-            # image = request.form["image_file"]
-            # price = request.form["price"]
-            # rate = request.form["rate"]
-            # favorite = request.form["favorite"]
-            # address = request.form["address"]
-            # neighborhood = request.form["neighborhood"]
-            # city = request.form["city"]
-            # state = request.form["state"]
+            #print(content)
+            title = request.form["title"]
+            date_posted = request.form["date_posted"]
+            image = request.form["image_file"]
+            price = request.form["price"]
+            rate = request.form["rate"]
+            favorite = request.form["favorite"]
+            address = request.form["address"]
+            neighborhood = request.form["neighborhood"]
+            city = request.form["city"]
+            state = request.form["state"]
             
-            # email = request.form["email"]
-            #current_user = User.query.filter_by(email=email).first()
+            email = get_jwt_identity()
+            current_user = User.query.filter_by(email=email).first()
             
-            #post1 = Post(content,title,date_posted,image,price,rate,favorite,address,neighborhood,city,state,current_user.id)
+            post1 = Post(content,title,"123.jpg",price,rate,favorite,address,neighborhood,city,state,current_user.id)
             
             #print(post1)
-            #db.session.add(Post)
-            #db.session.commit()
+            db.session.add(post1)
+            db.session.commit()
 
             return Response(dumps({"message": "SUCCESS"}), status=200, mimetype="application/json")
 

@@ -39,10 +39,10 @@ class Post(db.Model):
     # id do usuário que criou essa tabela, tem que ser igual da class User 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'),nullable=False)
 
-    def __init__(self, name, password, date_postedemail,image_file):
+    def __init__(self, content, title,image_file,price,rate,favorite,address,neighborhood,city,state,author):
         self.content = content
         self.title = title
-        self.date_posted = email
+        #self.date_posted = date_posted
         self.image_file = image_file
         self.price = price
         self.rate = rate
