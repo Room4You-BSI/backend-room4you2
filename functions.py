@@ -7,7 +7,6 @@ from json import dumps
 from http import HTTPStatus
 from http.client import HTTPException
 
-
 # ""Creating error cases JWT""
 
 @jwt.expired_token_loader
