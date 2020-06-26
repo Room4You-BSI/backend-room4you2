@@ -1,4 +1,4 @@
-from app import db
+from config import db
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -55,7 +55,6 @@ class Post(db.Model):
         self.state = state
         self.user_id = author
         
-
     def __repr__(self):
         return f"Post('{self.title}','{self.date_posted}','{self.image_file}')" 
     
