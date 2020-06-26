@@ -34,12 +34,13 @@ class Post(db.Model):
     favorite = db.Column(db.Boolean,nullable=True)
     address = db.Column(db.String(70),nullable=False)
     neighborhood = db.Column(db.String(40),nullable=False)
+    cep = db.Column(db.String(9),nullable=False)
     city = db.Column(db.String(40),nullable=False)
     state = db.Column(db.String(40),nullable=False)
     # id do usuário que criou essa tabela, tem que ser igual da class User 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'),nullable=False)
 
-    def __init__(self, content, title,image_file,price,rate,favorite,address,neighborhood,city,state,author):
+    def __init__(self, content, title,image_file,price,rate,favorite,address,neighborhood,cep,city,state,author):
         self.content = content
         self.title = title
         #self.date_posted = date_posted
@@ -49,6 +50,7 @@ class Post(db.Model):
         self.favorite = favorite
         self.address = address
         self.neighborhood = neighborhood
+        self.cep = cep
         self.city = city
         self.state = state
         self.user_id = author
