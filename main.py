@@ -16,5 +16,7 @@ app.add_url_rule("/posts", "rooms", view.rooms, methods=["GET"])
 
 app.add_url_rule("/filter", "filter", view.filter, methods=["GET"])
 
+app.add_url_rule("/add_as_favorite", "favorite", view.filter, methods=["GET,POST"])
+
 if __name__ == "__main__":
     app.run(debug=True)
