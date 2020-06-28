@@ -112,7 +112,7 @@ class Image(db.Model):
 #         self.title = title
 #         #self.date_posted = date_posted
         
-        
+            
 #     def __repr__(self):
 #         return f"Post('{self.title}','{self.date_posted}','{self.image_file}')" 
     
@@ -122,5 +122,10 @@ class User_has_Post_as_favorite(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'),nullable=False)
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'),nullable=False)
     # id do usuário que criou essa tabela, tem que ser igual da class User 
+
+    def __init__(self, user_id,post_id):
+        self.user_id = user_id
+        self.post_id = post_id
+        #self.date_posted = date_posted
         
 
