@@ -2,7 +2,7 @@ import re
 
 from flask import request, redirect, url_for, Response
 from flask_jwt_simple import create_jwt, jwt_required, get_jwt_identity
-from config.models import User, Post
+from config.models import User, Post, Image, Comoditie, User_has_Post_as_favorite
 from config import db, jwt
 
 from json import dumps
@@ -11,7 +11,6 @@ from http.client import HTTPException
 
 
 # ""Creating error cases JWT""
-
 @jwt.expired_token_loader
 def my_expired_token_callback():
     return Response(dumps([{"message": "Token has expired"}]), status=401, mimetype="application/json")
@@ -155,6 +154,26 @@ class Views(object):
         except HTTPException as e:
             return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
 
+    @jwt_required
+    def add_as_favorite(self):
+        """Add a relationship between Post and User as Favorite in the database."""
+        if request.method == 'POST':
+            try:
+                id_post = request.form.get("post_id")
+                email = get_jwt_identity()
+                current_user = User.query.filter_by(email=email).first()
+                
+                favorite = User_has_Post_as_favorite(current_user.id,id_post)
+
+                db.session.add(favorite)
+                db.session.commit()
+
+                return Response(dumps({"message": "SUCCESS"}), status=200, mimetype="application/json")
+
+            except HTTPException as e:
+                return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
+
+        return Response(dumps({"message": "SUCCESS"}), status=200, mimetype="application/json")
         
     def filter(self):
         """filter data from database."""
