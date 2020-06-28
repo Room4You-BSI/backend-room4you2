@@ -1,3 +1,5 @@
+import re
+
 from flask import request, redirect, url_for, Response
 from flask_jwt_simple import create_jwt, jwt_required, get_jwt_identity
 from config.models import User, Post, Image, Comoditie, User_has_Post_as_favorite
@@ -167,6 +169,27 @@ class Views(object):
                 return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
 
         return Response(dumps({"message": "SUCCESS"}), status=200, mimetype="application/json")
+        
+    def filter(self):
+        """filter data from database."""
+        try:
+            #http://127.0.0.1:5000/filter?city=araraquara
+            # pega a query -> request.args
+            # pega uma chave especifica "request.args.get('city')"
+            # print(request.args.gets("title"))
+            
+            info = request.args['title']
+            search = "%{}%".format(info)
+            
+            #posts = db.session.query(Post).filter(Post.title.op('regexp')(r'quarto embaré')).all()
+            
+            posts = db.session.query(Post).filter(Post.title.ilike(search)).all()
 
+
+            print(posts)
+            return Response(dumps({"message": 'SUCCESS'}), status=200, mimetype="application/json")
+
+        except HTTPException as e:
+            return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
 
 
