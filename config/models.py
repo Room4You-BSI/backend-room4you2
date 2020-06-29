@@ -4,11 +4,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 class User(db.Model):
     __tablename__ = "user"
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key = True)
     name = db.Column(db.String, nullable = False)
-    password = db.Column(db.String,nullable=False)
+    password = db.Column(db.String,nullable = False)
     email = db.Column(db.String,unique = True,nullable = False)
-    image_file = db.Column(db.String(20))
+    image_file = db.Column(db.Text)
+    tel = db.Column(db.String(15))
+
     posts = db.relationship('Post',backref='Author',lazy = True)
     favorites = db.relationship('User_has_Post_as_favorite',backref='Author',lazy = True)
     
@@ -50,11 +52,8 @@ class Post(db.Model):
     # id do usuário que criou essa tabela, tem que ser igual da class User 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'),nullable=False)
     
-<<<<<<< HEAD
 
     def __init__(self, content, title,price,rate,address,neighborhood,cep,city,state,n_casa,referencia,mora_local,restricao_sexo,mobiliado,author):
-=======
->>>>>>> b50783fafe27ae70a6c26755013068a7fb5397e2
         self.content = content
         self.title = title
         #self.date_posted = date_posted
