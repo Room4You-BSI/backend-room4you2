@@ -9,9 +9,10 @@ from json import dumps
 from http import HTTPStatus
 from http.client import HTTPException
 
+
 # ""Creating error cases JWT""
 @jwt.expired_token_loader
-def my_expired_token_callback(self):
+def my_expired_token_callback():
     return Response(dumps([{"message": "Token has expired"}]), status=401, mimetype="application/json")
 
 @jwt.invalid_token_loader
@@ -30,6 +31,7 @@ class Views(object):
     def home(self):
         return Response(dumps([{"message": "SUCCESS"}]), status=200, mimetype="application/json")
     
+
     def register(self):
         """Register a user in the database."""
         if request.method == 'POST':
@@ -62,21 +64,23 @@ class Views(object):
             try:
                 content = request.form.get("content")
                 title = request.form["title"]
-                date_posted = request.form["date_posted"]
-                image = request.form["image_file"]
+                #date_posted = request.form["date_posted"]
+                #image = request.form["image_file"]
                 price = request.form["price"]
                 rate = request.form["rate"]
-                favorite = not not request.form["favorite"]
+                #favorite = not not request.form["favorite"]
                 address = request.form["address"]
                 neighborhood = request.form["neighborhood"]
+                cep = request.form["cep"]
                 city = request.form["city"]
                 state = request.form["state"]
                 
                 email = get_jwt_identity()
                 current_user = User.query.filter_by(email=email).first()
                 
-                current_post = Post(content, title, image, price, rate, favorite, address, neighborhood, city, state, current_user.id)
-
+                #current_post = Post(content, title, image, price, rate, favorite, address, neighborhood, city, state, current_user.id)
+                current_post = Post(content, title, price, rate, address, neighborhood, cep, city, state, current_user.id)
+                                   
                 db.session.add(current_post)
                 db.session.commit()
 
@@ -119,6 +123,7 @@ class Views(object):
 
             for post in posts:
                 all_post.append({
+                    'id': post.id,
                     'title': post.title,
                     'text': post.content,
                     'image': 'https://q-cf.bstatic.com/images/hotel/max1024x768/200/200710933.jpg',
@@ -177,17 +182,17 @@ class Views(object):
             # pega a query -> request.args
             # pega uma chave especifica "request.args.get('city')"
             # print(request.args.gets("title"))
-            
+        
             info = request.args['title']
             search = "%{}%".format(info)
             
-            #posts = db.session.query(Post).filter(Post.title.op('regexp')(r'quarto embaré')).all()
-            
             posts = db.session.query(Post).filter(Post.title.ilike(search)).all()
-
-
-            print(posts)
-            return Response(dumps({"message": 'SUCCESS'}), status=200, mimetype="application/json")
+           
+            if posts:
+                print(posts)
+                return Response(dumps({"message": 'SUCCESS'}), status=200, mimetype="application/json")
+            else:
+                return Response(dumps({"message": 'NO RESULTS'}), status=404, mimetype="application/json")
 
         except HTTPException as e:
             return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")

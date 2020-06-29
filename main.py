@@ -1,7 +1,6 @@
 from config import app
 from functions import Views
 
-
 view = Views()
 
 app.add_url_rule("/", "home", view.home, methods=["GET"])

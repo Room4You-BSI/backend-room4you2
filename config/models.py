@@ -25,6 +25,7 @@ class User(db.Model):
 
 class Post(db.Model):
     __tablename__ = "post"
+
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text)
     title = db.Column(db.Text,nullable=False)
@@ -49,8 +50,11 @@ class Post(db.Model):
     # id do usuário que criou essa tabela, tem que ser igual da class User 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'),nullable=False)
     
+<<<<<<< HEAD
 
     def __init__(self, content, title,price,rate,address,neighborhood,cep,city,state,n_casa,referencia,mora_local,restricao_sexo,mobiliado,author):
+=======
+>>>>>>> b50783fafe27ae70a6c26755013068a7fb5397e2
         self.content = content
         self.title = title
         #self.date_posted = date_posted
@@ -68,7 +72,7 @@ class Post(db.Model):
         self.mobiliado = mobiliado
         
     def __repr__(self):
-        return f"Post('{self.title}','{self.date_posted}','{self.image_file}')" 
+        return f"Post('{self.id}','{self.title}')" 
     
 class Comoditie(db.Model):
     id = db.Column(db.Integer, primary_key=True)

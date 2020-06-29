@@ -1,8 +1,9 @@
 import os.path
+
 from flask import Flask
 from flask_jwt_simple import JWTManager
 from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_simple import JWTManager
+from flask_jwt_simple import JWTManager 
 
 app = Flask(__name__)
 
