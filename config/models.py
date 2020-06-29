@@ -35,7 +35,13 @@ class Post(db.Model):
     neighborhood = db.Column(db.String(40),nullable=False)
     cep = db.Column(db.String(9),nullable=False)
     city = db.Column(db.String(40),nullable=False)
+    n_casa  = db.Column(db.String(7),nullable=False)
     state = db.Column(db.String(40),nullable=False)
+    referencia = db.Column(db.String(40),nullable=False)
+    mora_local = db.Column(db.Boolean, nullable = False,default=False)
+    restricao_sexo  = db.Column(db.String(1),nullable=False)
+    pessoas_no_local = db.Column(db.Integer,nullable=False)
+    mobiliado = db.Column(db.Boolean, nullable = False,default=False)
     comoditie = db.relationship('Comoditie',backref='Post',lazy = True,uselist=False)
     image = db.relationship('Image',backref='Post',lazy = True)
     favorite = db.relationship('User_has_Post_as_favorite',backref='Post',lazy = True)
@@ -44,7 +50,7 @@ class Post(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'),nullable=False)
     
 
-    def __init__(self, content, title,price,rate,address,neighborhood,cep,city,state,author):
+    def __init__(self, content, title,price,rate,address,neighborhood,cep,city,state,n_casa,referencia,mora_local,restricao_sexo,mobiliado,author):
         self.content = content
         self.title = title
         #self.date_posted = date_posted
@@ -55,7 +61,11 @@ class Post(db.Model):
         self.cep = cep
         self.city = city
         self.state = state
-        self.user_id = author
+        self.n_casa= n_casa
+        self.referencia = referencia
+        self.mora_local = mora_local
+        self.restricao_sexo = restricao_sexo
+        self.mobiliado = mobiliado
         
     def __repr__(self):
         return f"Post('{self.title}','{self.date_posted}','{self.image_file}')" 
@@ -64,10 +74,10 @@ class Comoditie(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     wifi = db.Column(db.Boolean, nullable = False,default=False)
     maquina_lavar = db.Column(db.Boolean, nullable = False,default=False)
-    vaga = db.Column(db.Boolean, nullable = False,default=False)
+    vaga_carro = db.Column(db.Boolean, nullable = False,default=False)
     refeicao = db.Column(db.Boolean, nullable = False,default=False)
     suite = db.Column(db.Boolean, nullable = False,default=False)
-    escrivaninha = db.Column(db.Boolean, nullable = False,default=False)
+    mesa = db.Column(db.Boolean, nullable = False,default=False)
     ar_condicionado = db.Column(db.Boolean, nullable = False,default=False)
     tv = db.Column(db.Boolean, nullable = False,default=False)
 
