@@ -9,6 +9,7 @@ class User(db.Model):
     password = db.Column(db.String,nullable = False)
     email = db.Column(db.String,unique = True,nullable = False)
     image_file = db.Column(db.Text)
+    description = db.Column(db.Text, nullable = True)
     tel = db.Column(db.String(15))
 
     posts = db.relationship('Post',backref='Author',lazy = True)
