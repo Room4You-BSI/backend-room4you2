@@ -23,6 +23,7 @@ class User(db.Model):
     def verify_password(self, pwd):
         return check_password_hash(self.password, pwd)
 
+
 class Post(db.Model):
     __tablename__ = "post"
 
@@ -59,7 +60,8 @@ class Post(db.Model):
         
     def __repr__(self):
         return f"Post('{self.id}','{self.title}')" 
-    
+
+
 class Comoditie(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     wifi = db.Column(db.Boolean, nullable = False,default=False)
@@ -81,7 +83,6 @@ class Comoditie(db.Model):
         return f"Post('{self.content}')" 
     
 
-
 class Image(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     url = db.Column(db.Text,nullable = False)
@@ -97,8 +98,6 @@ class Image(db.Model):
     def __repr__(self):
         return f"Post('{self.url}','{self.priority}','{self.image_file}')" 
     
-
-
 
 # class User_has_rated_Post(db.Model):
 #     __tablename__ = "post"
@@ -118,6 +117,8 @@ class Image(db.Model):
     
 
 class User_has_Post_as_favorite(db.Model):
+    __tablename__ = "user_has_Post_as_favorite"
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'),nullable=False)
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'),nullable=False)

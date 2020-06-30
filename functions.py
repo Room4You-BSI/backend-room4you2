@@ -28,6 +28,7 @@ def unauthorized_token_callback(self):
 
 class Views(object):
 
+
     def home(self):
         return Response(dumps([{"message": "SUCCESS"}]), status=200, mimetype="application/json")
     
@@ -56,6 +57,7 @@ class Views(object):
                 return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
         
         return Response(dumps({"message": "NOT AVAILABLE"}), status=403, mimetype="application/json")
+
 
     @jwt_required
     def create_post(self):
@@ -89,7 +91,7 @@ class Views(object):
             except HTTPException as e:
                 return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
 
-        return Response(dumps({"message": "SUCCESS"}), status=200, mimetype="application/json")
+        return Response(dumps({"message": "NOT POST"}), status=403, mimetype="application/json")
 
 
     def login(self):
@@ -115,7 +117,7 @@ class Views(object):
         return Response(dumps({"message": "NOT AVAILABLE"}), status=403, mimetype="application/json")
 
 
-    def rooms(self):
+    def rooms_list(self):
         """List the rooms from database."""
         try:
             posts = db.session.query(Post).all()
@@ -123,7 +125,7 @@ class Views(object):
 
             for post in posts:
                 all_post.append({
-                    'id': post.id,
+                    'post_id': post.id,
                     'title': post.title,
                     'text': post.content,
                     'image': 'https://q-cf.bstatic.com/images/hotel/max1024x768/200/200710933.jpg',
@@ -154,6 +156,73 @@ class Views(object):
         except HTTPException as e:
             return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
 
+
+    def rooms_detail(self, id):
+        """List the rooms from database."""
+        try:
+            post = Post.query.filter_by(id=id).first()
+
+            detail = [{
+                'post_id': post.id,
+                'title': post.title,
+                'text': post.content,
+                'image': ['https://q-cf.bstatic.com/images/hotel/max1024x768/200/200710933.jpg', 'https://q-cf.bstatic.com/images/hotel/max1024x768/200/200710933.jpg', 'https://q-cf.bstatic.com/images/hotel/max1024x768/200/200710933.jpg'],
+                'price': post.price,
+                'rate': 4,
+                'referencia': '',
+                'favorite': False,
+                'mora_local': '',
+                'rua': '', 
+                'bairro': '',
+                'n_casa': '', 
+                'cidade': '',
+                'estado': '',  
+                'restricao_sexo': '',
+                'pessoas_no_local': '',
+                'mobiliado': '',
+                'mora_local': '',
+                'attributes': [
+                    {
+                        'label': 'wifi', 
+                        'available': True
+                    },
+                    {
+                        'label': 'vaga_carro', 
+                        'available': True
+                    },
+                    {
+                        'label': 'mesa', 
+                        'available': True
+                    },
+                    {
+                        'label': 'refeicoes', 
+                        'available': True
+                    },
+                    {
+                        'label': 'ar_condicionado', 
+                        'available': True
+                    },
+                    {
+                        'label': 'maquina_lavar', 
+                        'available': True
+                    },
+                    {
+                        'label': 'suite', 
+                        'available': True
+                    },
+                    {
+                        'label': 'tv', 
+                        'available': True
+                    }
+                ]
+            }]
+        
+            return Response(dumps(detail), status=200, mimetype="application/json")
+
+        except HTTPException as e:
+            return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
+
+
     @jwt_required
     def add_as_favorite(self):
         """Add a relationship between Post and User as Favorite in the database."""
@@ -163,7 +232,7 @@ class Views(object):
                 email = get_jwt_identity()
                 current_user = User.query.filter_by(email=email).first()
                 
-                favorite = User_has_Post_as_favorite(current_user.id,id_post)
+                favorite = User_has_Post_as_favorite(current_user.id, id_post)
 
                 db.session.add(favorite)
                 db.session.commit()
@@ -173,8 +242,12 @@ class Views(object):
             except HTTPException as e:
                 return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
 
-        return Response(dumps({"message": "SUCCESS"}), status=200, mimetype="application/json")
-        
+        return Response(dumps({"message": "NOT POST"}), status=403, mimetype="application/json")
+
+    @jwt_required
+    def remove_favorite(self):
+        pass     
+
     def filter(self):
         """filter data from database."""
         try:
@@ -198,3 +271,24 @@ class Views(object):
             return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
 
 
+    def post_author(self):
+        try:
+            post_id = request.form["post_id"]
+
+            post = Post.query.filter_by(id=post_id).first()
+        
+            user_id = post.user_id
+
+            user = User.query.filter_by(id=user_id).first()
+
+            author = [{
+                'name': user.name,
+                'email': user.email,
+                'tel': '16994151878', 
+                'description': 'Andar de bicicleta, Astrologia, leitura de cartas, Caminhada, Ler, Música, shows, festivais.',
+                'img': 'https://assets.b9.com.br/wp-content/uploads/2018/03/544be8a36059997d-1280x720.jpg'
+            }]
+            return Response(dumps(author), status=200, mimetype="application/json")
+
+        except HTTPException as e:
+            return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
