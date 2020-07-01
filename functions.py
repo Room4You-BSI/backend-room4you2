@@ -1,4 +1,5 @@
 import re
+import random
 
 from flask import request, redirect, url_for, Response
 from flask_jwt_simple import create_jwt, jwt_required, get_jwt_identity
@@ -8,8 +9,9 @@ from config import db, jwt
 from json import dumps
 from http import HTTPStatus
 from http.client import HTTPException
+from datetime import datetime, timedelta
 
-
+db.create_all()
 # ""Creating error cases JWT""
 @jwt.expired_token_loader
 def my_expired_token_callback():
@@ -21,10 +23,27 @@ def invalid_token_callback(self):
 
 @jwt.unauthorized_loader
 def unauthorized_token_callback(self):
-    return Response(dumps([{"message": "Missing Authorization Header"}]), status=403, mimetype="application/json")
+    return Response(dumps([{"message": "Missing JWT"}]), status=403, mimetype="application/json")
 
+@jwt.jwt_data_loader
+def add_claims_to_access_token(identity):
+    # exp -> now + 12 hours
+    now = datetime.utcnow()
+    hours = timedelta(hours=12)
 
-# ""Flask Functions""
+    user = User.query.filter_by(id=identity).first()
+
+    return {
+        'exp': now + hours,
+        'iat': now,
+        'nbf': now,
+        'sub': identity,
+        'name': user.name,
+        'img': user.image_file, 
+        'description': user.description
+    }
+
+#""Flask Functions""
 
 class Views(object):
 
@@ -37,17 +56,19 @@ class Views(object):
         """Register a user in the database."""
         if request.method == 'POST':
             try:
-                name = request.form["name"]
+                name = request.form["nome"]
                 email = request.form["email"]
                 pwd = request.form["password"]
-                img = request.form["img"]
+                img = request.form["userImg"]
+                telPhone = request.form["cell"]
+                aboutMe = request.form["aboutMe"]
 
                 existing_user = User.query.filter_by(email=email).first()
 
                 if existing_user:
                     return Response(dumps({"message": "USER ALREADY EXISTS"}), status=422, mimetype="application/json")
 
-                user = User(name, pwd, email, img)
+                user = User(name, pwd, email, img, telPhone, aboutMe)
                 db.session.add(user)
                 db.session.commit()
 
@@ -64,26 +85,51 @@ class Views(object):
         """Register a Post in the database."""
         if request.method == 'POST':
             try:
-                content = request.form.get("content")
+                
+                # descricao
                 title = request.form["title"]
-                #date_posted = request.form["date_posted"]
+                content = request.form.get("content")
                 #image = request.form["image_file"]
                 price = request.form["price"]
-                rate = request.form["rate"]
-                #favorite = not not request.form["favorite"]
                 address = request.form["address"]
-                neighborhood = request.form["neighborhood"]
+                bairro = request.form["bairro"]
                 cep = request.form["cep"]
                 city = request.form["city"]
                 state = request.form["state"]
                 
-                email = get_jwt_identity()
-                current_user = User.query.filter_by(email=email).first()
+                # inicio
+                n_casa = request.form["n_casa"]
+                referencia = request.form["referencia"]
+                mora_local = bool(int(request.form["mora_local"]))
+                restricao_sexo  = request.form["restricao_sexo"]
+                pessoas_no_local = request.form["pessoas_no_local"]
+                mobiliado = bool(int(request.form["mobiliado"]))
                 
-                #current_post = Post(content, title, image, price, rate, favorite, address, neighborhood, city, state, current_user.id)
-                current_post = Post(content, title, price, rate, address, neighborhood, cep, city, state, current_user.id)
-                                   
+                # comodidades
+                wifi = bool(int(request.form["wifi"]))
+                maquina_lavar = bool(int(request.form["maquina_lavar"]))
+                vaga_carro = bool(int(request.form["vaga_carro"]))
+                refeicao = bool(int(request.form["refeicao"]))
+                suite = bool(int(request.form["suite"]))
+                mesa = bool(int(request.form["mesa"]))
+                ar_condicionado = bool(int(request.form["ar_condicionado"]))
+                tv = bool(int(request.form["tv"]))
+
+                # user_id do criador
+                user_id = get_jwt_identity()
+
+                #jwt_data = get_jwt()  # ->pegar todos os dados do jwt 
+                
+                current_post = Post(title, content, price, address, bairro, cep, city, state, n_casa, referencia, mora_local, restricao_sexo, pessoas_no_local, mobiliado, user_id)
+                              
                 db.session.add(current_post)
+                db.session.commit()
+
+                postID = current_post.id  
+
+                current_comoditie = Comoditie(wifi, maquina_lavar, vaga_carro, refeicao, suite, mesa, ar_condicionado, tv, postID)
+
+                db.session.add(current_comoditie)
                 db.session.commit()
 
                 return Response(dumps({"message": "SUCCESS"}), status=200, mimetype="application/json")
@@ -104,12 +150,12 @@ class Views(object):
                 user = User.query.filter_by(email=email).first()
                 
                 if not user:
-                    return Response(dumps({"message": "USER NOT FOUND"}), status=404, mimetype="application/json")
+                    return Response(dumps({"message": "NOT FOUND"}), status=422, mimetype="application/json")
                 
                 if not user.verify_password(pwd):
-                    return Response(dumps({"message": "WRONG PASSWORD"}), status=422, mimetype="application/json")
-
-                return Response(dumps({"message": "SUCCESS", "jwt": create_jwt(identity=email)}), status=200, mimetype="application/json")
+                    return Response(dumps({"message": "NOT FOUND"}), status=422, mimetype="application/json")
+               
+                return Response(dumps({"message": "SUCCESS", "jwt": create_jwt(identity=user.id)}), status=200, mimetype="application/json")
 
             except HTTPException as e:
                 return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
@@ -123,30 +169,42 @@ class Views(object):
             posts = db.session.query(Post).all()
             all_post = []
 
+            # quando tiver implementado rate alterar:
+            rateNumb = random.randint(2,5)
+
+            # quando tiver implementado favoritos alterar:
+            fav = False
+
+            # fazer querrys no for para pegar commodities?
             for post in posts:
+                comoditie = Comoditie.query.filter_by(post_id=post.id).first()
                 all_post.append({
                     'post_id': post.id,
                     'title': post.title,
                     'text': post.content,
                     'image': 'https://q-cf.bstatic.com/images/hotel/max1024x768/200/200710933.jpg',
                     'price': post.price,
-                    'rate': post.rate,
-                    'distance': '3,0 km do centro',
-                    'favorite': False,
+                    'rate': rateNumb,
+                    'distance': post.content,
+                    'favorite': fav,
                     'attributesColumn1': [
                         {
-                            'label': 'Garagem', 
-                            'available': True
+                            'label': 'Wifi', 
+                            'available': bool(comoditie.wifi)
                         },
                         {
-                            'label': 'Wi-fi', 
-                            'available': True
+                            'label': 'Estacionamento', 
+                            'available': bool(comoditie.vaga_carro)
                         },
                     ],
                     'attributesColumn2': [
                         {
+                            'label': 'Refeições', 
+                            'available': bool(comoditie.refeicao)
+                        }, 
+                        {
                             'label': 'Suite', 
-                            'available': True
+                            'available': bool(comoditie.suite)
                         }
                     ]
                 })
@@ -162,57 +220,68 @@ class Views(object):
         try:
             post = Post.query.filter_by(id=id).first()
 
+            if not post:
+                return Response(dumps({"message": "POST NOT FOUND"}), status=404, mimetype="application/json")
+
+            comoditie = Comoditie.query.filter_by(post_id=post.id).first()
+            
+            # quando tiver implementado rate alterar:
+            rateNumb = random.randint(2,5)
+
+            # quando tiver implementado favoritos alterar:
+            fav = False
+
             detail = [{
+                'rate': rateNumb,
+                'favorite': False,
                 'post_id': post.id,
                 'title': post.title,
                 'text': post.content,
-                'image': ['https://q-cf.bstatic.com/images/hotel/max1024x768/200/200710933.jpg', 'https://q-cf.bstatic.com/images/hotel/max1024x768/200/200710933.jpg', 'https://q-cf.bstatic.com/images/hotel/max1024x768/200/200710933.jpg'],
+                #'image': ['https://q-cf.bstatic.com/images/hotel/max1024x768/200/200710933.jpg', 'https://q-cf.bstatic.com/images/hotel/max1024x768/200/200710933.jpg', 'https://q-cf.bstatic.com/images/hotel/max1024x768/200/200710933.jpg'],
                 'price': post.price,
-                'rate': 4,
-                'referencia': '',
-                'favorite': False,
-                'mora_local': '',
-                'rua': '', 
-                'bairro': '',
-                'n_casa': '', 
-                'cidade': '',
-                'estado': '',  
-                'restricao_sexo': '',
-                'pessoas_no_local': '',
-                'mobiliado': '',
-                'mora_local': '',
+                'address': post.address, 
+                'bairro': post.bairro, 
+                'cep': post.cep, 
+                'city': post.city,
+                'state': post.state,
+                'n_casa': post.n_casa,  
+                'mora_local': bool(int(post.mora_local)),
+                'referencia': post.referencia,
+                'restricao_sexo': post.restricao_sexo,
+                'pessoas_no_local': post.pessoas_no_local,
+                'mobiliado': bool(int(post.mobiliado)),
                 'attributes': [
                     {
                         'label': 'wifi', 
-                        'available': True
-                    },
-                    {
-                        'label': 'vaga_carro', 
-                        'available': True
-                    },
-                    {
-                        'label': 'mesa', 
-                        'available': True
-                    },
-                    {
-                        'label': 'refeicoes', 
-                        'available': True
-                    },
-                    {
-                        'label': 'ar_condicionado', 
-                        'available': True
+                        'available': bool(int(comoditie.wifi))
                     },
                     {
                         'label': 'maquina_lavar', 
-                        'available': True
+                        'available': bool(int(comoditie.maquina_lavar))
+                    },
+                    {
+                        'label': 'vaga_carro', 
+                        'available': bool(int(comoditie.vaga_carro))
+                    },
+                    {
+                        'label': 'refeições', 
+                        'available': bool(int(comoditie.refeicao))
                     },
                     {
                         'label': 'suite', 
-                        'available': True
+                        'available': bool(int(comoditie.suite))
+                    },
+                    {
+                        'label': 'mesa', 
+                        'available': bool(int(comoditie.mesa))
+                    },
+                    {
+                        'label': 'ar_condicionado', 
+                        'available': bool(int(comoditie.ar_condicionado))
                     },
                     {
                         'label': 'tv', 
-                        'available': True
+                        'available': bool(int(comoditie.tv))
                     }
                 ]
             }]
@@ -248,6 +317,7 @@ class Views(object):
     def remove_favorite(self):
         pass     
 
+
     def filter(self):
         """filter data from database."""
         try:
@@ -274,19 +344,17 @@ class Views(object):
     def post_author(self):
         try:
             post_id = request.form["post_id"]
-
             post = Post.query.filter_by(id=post_id).first()
         
             user_id = post.user_id
-
             user = User.query.filter_by(id=user_id).first()
 
             author = [{
                 'name': user.name,
                 'email': user.email,
-                'tel': '16994151878', 
-                'description': 'Andar de bicicleta, Astrologia, leitura de cartas, Caminhada, Ler, Música, shows, festivais.',
-                'img': 'https://assets.b9.com.br/wp-content/uploads/2018/03/544be8a36059997d-1280x720.jpg'
+                'tel': user.tel, 
+                'description': user.description,
+                'img': user.image_file
             }]
             return Response(dumps(author), status=200, mimetype="application/json")
 
