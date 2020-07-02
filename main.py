@@ -15,13 +15,18 @@ app.add_url_rule("/posts/", "rooms_list", view.rooms_list, methods=["GET"])
 
 app.add_url_rule("/posts/<int:id>", "rooms_detail", view.rooms_detail, methods=["GET"])
 
-app.add_url_rule("/post_author", "post_author", view.post_author, methods=["GET"])
+app.add_url_rule("/post_author/<int:id>", "post_author", view.post_author, methods=["GET"])
 
 app.add_url_rule("/filter", "filter", view.filter, methods=["GET"])
 
 app.add_url_rule("/add_as_favorite", "add_as_favorite", view.add_as_favorite, methods=["GET", "POST"])
 
 app.add_url_rule("/remove_favorite", "remove_favorite", view.remove_favorite, methods=["GET", "POST"])
+
+app.add_url_rule("/upload-photo/", "upload_photo", view.upload_photo, methods=["GET", "POST"])
+
+app.add_url_rule("/upload-photo/<paste>", "upload_photo", view.upload_photo, methods=["GET", "POST"])
+
 
 if __name__ == "__main__":
     app.run(debug=True)

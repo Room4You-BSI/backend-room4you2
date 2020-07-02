@@ -1,5 +1,6 @@
 import re
 import random
+import boto3
 
 from flask import request, redirect, url_for, Response
 from flask_jwt_simple import create_jwt, jwt_required, get_jwt_identity, jwt_optional, get_jwt
@@ -10,6 +11,8 @@ from json import dumps
 from http import HTTPStatus
 from http.client import HTTPException
 from datetime import datetime, timedelta
+
+from werkzeug.utils import secure_filename
 
 #db.create_all()
 
@@ -45,7 +48,6 @@ def add_claims_to_access_token(identity):
     }
 
 #""Flask Functions""
-
 class Views(object):
 
 
@@ -73,7 +75,7 @@ class Views(object):
                 db.session.add(user)
                 db.session.commit()
 
-                return Response(dumps({"message": "SUCCESS"}), status=200, mimetype="application/json")
+                return Response(dumps({"message": "SUCCESS"}), status=201, mimetype="application/json")
 
             except HTTPException as e:
                 return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
@@ -134,7 +136,7 @@ class Views(object):
                 db.session.add(current_comoditie)
                 db.session.commit()
 
-                return Response(dumps({"message": "SUCCESS"}), status=200, mimetype="application/json")
+                return Response(dumps({"message": "SUCCESS"}), status=201, mimetype="application/json")
 
             except HTTPException as e:
                 return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
@@ -175,7 +177,7 @@ class Views(object):
             rateNumb = random.randint(2,5)
 
             isLogged = get_jwt_identity()
-
+            
             for post in posts:
                 comoditie = Comoditie.query.filter_by(post_id=post.id).first()
                 favorite = False
@@ -365,7 +367,7 @@ class Views(object):
            
             if posts:
                 print(posts)
-                return Response(dumps({"message": 'SUCCESS'}), status=422, mimetype="application/json")
+                return Response(dumps({"message": 'SUCCESS'}), status=200, mimetype="application/json")
             else:
                 return Response(dumps({"message": 'NO RESULTS'}), status=404, mimetype="application/json")
 
@@ -373,10 +375,9 @@ class Views(object):
             return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
 
 
-    def post_author(self):
+    def post_author(self, id):
         try:
-            post_id = request.form["post_id"]
-            post = Post.query.filter_by(id=post_id).first()
+            post = Post.query.filter_by(id=id).first()
         
             user_id = post.user_id
             user = User.query.filter_by(id=user_id).first()
@@ -392,3 +393,56 @@ class Views(object):
 
         except HTTPException as e:
             return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
+
+
+    def upload_photo(self, paste='room'):
+        """Upload Photos Service"""
+        if request.method == 'POST':
+            try:    
+                img_file = request.files.getlist('userImg')
+
+                if not img_file or img_file[0].filename == '':
+                    return Response(dumps({"message": 'NOT UPLOADED'}), status=422, mimetype="application/json")
+
+                image_list = []
+                qtt_images = len(img_file)
+                now = now = datetime.utcnow()
+                bucket = paste + '-room4you-photos' 
+                base_url = 'https://room4you-photos.s3-sa-east-1.amazonaws.com/'
+                is_public = 'public-read'
+
+                client = boto3.client('s3',
+                                    region_name = 'sa-east-1',
+                                    endpoint_url = base_url,
+                                    aws_access_key_id = 'AKIA24MFWIT23R3GFMY7',
+                                    aws_secret_access_key = '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')
+            
+                for img in img_file:    
+                    if (img.content_type != 'image/png') and (img.content_type != 'image/jpeg'):
+                        return Response(dumps({"message": 'ITS NOT IMAGE'}), status=422, mimetype="application/json")
+
+                    filename = paste + '-' + secure_filename(img.filename) + '-' + str(now)  
+                    content_type = img.content_type
+                    
+                    resp = client.put_object(Body=img,
+                                    ACL=is_public,
+                                    Bucket=bucket,
+                                    Key=filename,
+                                    ContentType=content_type
+                                    )
+                
+                    image_list.append(base_url + bucket + '/' + filename)
+
+                return Response(dumps({'link': image_list}), status=201, mimetype="application/json")
+
+            except HTTPException as e:
+                return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
+
+        return Response(dumps({"message": "NOT POST"}), status=403, mimetype="application/json")
+        
+        
+        
+        
+        
+       
+        
