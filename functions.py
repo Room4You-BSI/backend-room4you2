@@ -2,8 +2,8 @@ import re
 import random
 
 from flask import request, redirect, url_for, Response
-from flask_jwt_simple import create_jwt, jwt_required, get_jwt_identity
-from config.models import User, Post, Image, Comoditie, User_has_Post_as_favorite
+from flask_jwt_simple import create_jwt, jwt_required, get_jwt_identity, jwt_optional, get_jwt
+from config.models import User, Post, Comoditie, User_has_Post_as_favorite
 from config import db, jwt
 
 from json import dumps
@@ -11,7 +11,8 @@ from http import HTTPStatus
 from http.client import HTTPException
 from datetime import datetime, timedelta
 
-db.create_all()
+#db.create_all()
+
 # ""Creating error cases JWT""
 @jwt.expired_token_loader
 def my_expired_token_callback():
@@ -96,7 +97,8 @@ class Views(object):
                 cep = request.form["cep"]
                 city = request.form["city"]
                 state = request.form["state"]
-                
+                image = request.form["imgs"]
+
                 # inicio
                 n_casa = request.form["n_casa"]
                 referencia = request.form["referencia"]
@@ -120,7 +122,7 @@ class Views(object):
 
                 #jwt_data = get_jwt()  # ->pegar todos os dados do jwt 
                 
-                current_post = Post(title, content, price, address, bairro, cep, city, state, n_casa, referencia, mora_local, restricao_sexo, pessoas_no_local, mobiliado, user_id)
+                current_post = Post(title, content, price, address, bairro, cep, city, state, image, n_casa, referencia, mora_local, restricao_sexo, pessoas_no_local, mobiliado, user_id)
                               
                 db.session.add(current_post)
                 db.session.commit()
@@ -162,7 +164,7 @@ class Views(object):
             
         return Response(dumps({"message": "NOT AVAILABLE"}), status=403, mimetype="application/json")
 
-
+    @jwt_optional
     def rooms_list(self):
         """List the rooms from database."""
         try:
@@ -172,21 +174,25 @@ class Views(object):
             # quando tiver implementado rate alterar:
             rateNumb = random.randint(2,5)
 
-            # quando tiver implementado favoritos alterar:
-            fav = False
+            isLogged = get_jwt_identity()
 
-            # fazer querrys no for para pegar commodities?
             for post in posts:
                 comoditie = Comoditie.query.filter_by(post_id=post.id).first()
+                favorite = False
+
+                if isLogged:
+                    favorite = User_has_Post_as_favorite.query.filter_by(user_id=isLogged, post_id=post.id).first()
+                    favorite = bool(favorite)
+                
                 all_post.append({
                     'post_id': post.id,
                     'title': post.title,
                     'text': post.content,
-                    'image': 'https://q-cf.bstatic.com/images/hotel/max1024x768/200/200710933.jpg',
+                    'image': post.image,
                     'price': post.price,
                     'rate': rateNumb,
                     'distance': post.content,
-                    'favorite': fav,
+                    'favorite': favorite,
                     'attributesColumn1': [
                         {
                             'label': 'Wifi', 
@@ -214,7 +220,7 @@ class Views(object):
         except HTTPException as e:
             return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
 
-
+    @jwt_optional
     def rooms_detail(self, id):
         """List the rooms from database."""
         try:
@@ -223,21 +229,25 @@ class Views(object):
             if not post:
                 return Response(dumps({"message": "POST NOT FOUND"}), status=404, mimetype="application/json")
 
-            comoditie = Comoditie.query.filter_by(post_id=post.id).first()
+            comoditie = Comoditie.query.filter_by(post_id=id).first()
             
             # quando tiver implementado rate alterar:
             rateNumb = random.randint(2,5)
+           
+            isLogged = get_jwt_identity()
+            favorite = None
 
-            # quando tiver implementado favoritos alterar:
-            fav = False
+            if isLogged:
+                favorite = User_has_Post_as_favorite.query.filter_by(user_id=isLogged, post_id=id).first()
+                favorite = bool(favorite)
 
             detail = [{
                 'rate': rateNumb,
-                'favorite': False,
-                'post_id': post.id,
+                'favorite': favorite,
+                'post_id': id,
                 'title': post.title,
                 'text': post.content,
-                #'image': ['https://q-cf.bstatic.com/images/hotel/max1024x768/200/200710933.jpg', 'https://q-cf.bstatic.com/images/hotel/max1024x768/200/200710933.jpg', 'https://q-cf.bstatic.com/images/hotel/max1024x768/200/200710933.jpg'],
+                'image': post.image,
                 'price': post.price,
                 'address': post.address, 
                 'bairro': post.bairro, 
@@ -298,10 +308,14 @@ class Views(object):
         if request.method == 'POST':
             try:
                 id_post = request.form.get("post_id")
-                email = get_jwt_identity()
-                current_user = User.query.filter_by(email=email).first()
+                userID = get_jwt_identity()
                 
-                favorite = User_has_Post_as_favorite(current_user.id, id_post)
+                already = User_has_Post_as_favorite.query.filter_by(user_id=userID, post_id=id_post).first()
+                
+                if already:
+                     return Response(dumps({"message": "ALREADY FAVORITE"}), status=422, mimetype="application/json")
+
+                favorite = User_has_Post_as_favorite(userID, id_post)
 
                 db.session.add(favorite)
                 db.session.commit()
@@ -314,9 +328,27 @@ class Views(object):
         return Response(dumps({"message": "NOT POST"}), status=403, mimetype="application/json")
 
     @jwt_required
-    def remove_favorite(self):
-        pass     
+    def remove_favorite(self):  
+        """Remove a relationship between Post and User as Favorite in the database."""
+        if request.method == 'POST':
+            try:
+                id_post = request.form.get("post_id")
+                userID = get_jwt_identity()
+                
+                favorite = User_has_Post_as_favorite.query.filter_by(user_id=userID, post_id=id_post).first()
 
+                if not favorite:
+                    return Response(dumps({"message": "IT IS NOT FAVORITE"}), status=422, mimetype="application/json")
+                    
+                db.session.delete(favorite)
+                db.session.commit()
+
+                return Response(dumps({"message": "SUCCESS"}), status=200, mimetype="application/json")
+
+            except HTTPException as e:
+                return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
+
+        return Response(dumps({"message": "NOT POST"}), status=403, mimetype="application/json")
 
     def filter(self):
         """filter data from database."""
@@ -333,7 +365,7 @@ class Views(object):
            
             if posts:
                 print(posts)
-                return Response(dumps({"message": 'SUCCESS'}), status=200, mimetype="application/json")
+                return Response(dumps({"message": 'SUCCESS'}), status=422, mimetype="application/json")
             else:
                 return Response(dumps({"message": 'NO RESULTS'}), status=404, mimetype="application/json")
 

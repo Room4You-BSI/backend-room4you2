@@ -42,6 +42,7 @@ class Post(db.Model):
     cep = db.Column(db.String(9),nullable=False)
     city = db.Column(db.String(40),nullable=False)
     state = db.Column(db.String(40),nullable=False)
+    image = db.Column(db.Text, nullable = False,default=False)
     n_casa  = db.Column(db.String(7),nullable=False)
     referencia = db.Column(db.String(40),nullable=False)
     mora_local = db.Column(db.Boolean, nullable = False,default=False)
@@ -49,14 +50,14 @@ class Post(db.Model):
     pessoas_no_local = db.Column(db.Integer,nullable=False)
     mobiliado = db.Column(db.Boolean, nullable = False,default=False)
     comoditie = db.relationship('Comoditie',backref='Post',lazy = True,uselist=False)
-    image = db.relationship('Image',backref='Post',lazy = True)
+    #image = db.relationship('Image',backref='Post',lazy = True)
     favorite = db.relationship('User_has_Post_as_favorite',backref='Post',lazy = True)
     date_posted = db.Column(db.DateTime,nullable=False,default=datetime.utcnow())
 
     # id do usuário que criou essa tabela, tem que ser igual da class User 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'),nullable=False)
     
-    def __init__(self, title, content, price, address, bairro, cep, city, state, n_casa, referencia, mora_local, restricao_sexo, pessoas_no_local, mobiliado, author):
+    def __init__(self, title, content, price, address, bairro, cep, city, state, image, n_casa, referencia, mora_local, restricao_sexo, pessoas_no_local, mobiliado, author):
         self.title = title
         self.content = content 
         self.price = price
@@ -65,6 +66,7 @@ class Post(db.Model):
         self.cep = cep
         self.city = city
         self.state = state
+        self.image = image
         self.n_casa= n_casa
         self.referencia = referencia
         self.mora_local = mora_local
@@ -103,22 +105,20 @@ class Comoditie(db.Model):
     def __repr__(self):
         return f"Post('{self.post_id}')" 
     
-class Image(db.Model):
+class User_has_Post_as_favorite(db.Model):
+    __tablename__ = "user_has_Post_as_favorite"
+
     id = db.Column(db.Integer, primary_key=True)
-    url = db.Column(db.Text,nullable = False)
-    priority = db.Column(db.Integer,nullable=False)
-    
-    # id do usuário que criou essa tabela, tem que ser igual da class User 
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'),nullable=False)
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'),nullable=False)
+    # id do usuário que criou essa tabela, tem que ser igual da class User 
 
-    def __init__(self, url, priority):
-        self.url = url
-        self.priority = priority
+    def __init__(self, user_id,post_id):
+        self.user_id = user_id
+        self.post_id = post_id
+        #self.date_posted = date_posted
         
-    def __repr__(self):
-        return f"Post('{self.url}','{self.priority}','{self.image_file}')" 
-    
-
+        
 # class User_has_rated_Post(db.Model):
 #     __tablename__ = "post"
 #     id = db.Column(db.Integer, primary_key=True)
@@ -134,19 +134,18 @@ class Image(db.Model):
             
 #     def __repr__(self):
 #         return f"Post('{self.title}','{self.date_posted}','{self.image_file}')" 
+
+#class Image(db.Model):
+#     id = db.Column(db.Integer, primary_key=True)
+#     url = db.Column(db.Text, nullable=False)
+#     priority = db.Column(db.Integer, nullable=False)
     
+#     # id do usuário que criou essa tabela, tem que ser igual da class User 
+#     post_id = db.Column(db.Integer, db.ForeignKey('post.id'),nullable=False)
 
-class User_has_Post_as_favorite(db.Model):
-    __tablename__ = "user_has_Post_as_favorite"
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'),nullable=False)
-    post_id = db.Column(db.Integer, db.ForeignKey('post.id'),nullable=False)
-    # id do usuário que criou essa tabela, tem que ser igual da class User 
-
-    def __init__(self, user_id,post_id):
-        self.user_id = user_id
-        self.post_id = post_id
-        #self.date_posted = date_posted
+#     def __init__(self, url, priority):
+#         self.url = url
+#         self.priority = priority
         
-
+#     def __repr__(self):
+#         return f"Post('{self.url}','{self.priority}','{self.image_file}')" 
