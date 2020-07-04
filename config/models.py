@@ -7,18 +7,20 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     name = db.Column(db.String, nullable = False)
     password = db.Column(db.String,nullable = False)
-    email = db.Column(db.String,unique = True,nullable = False)
+    email = db.Column(db.String,unique=True,nullable = False)
+    contactEmail = db.Column(db.String,unique=True,nullable = False)
     image_file = db.Column(db.Text)
-    description = db.Column(db.Text, nullable = True)
-    tel = db.Column(db.String(15))
+    description = db.Column(db.Text, nullable = True, default='')
+    tel = db.Column(db.String(15), default='')
 
     posts = db.relationship('Post', backref='Author', lazy=True)
     favorites = db.relationship('User_has_Post_as_favorite', backref='Author', lazy=True)
     
-    def __init__(self, name, password, email, image_file, cell, aboutMe):
+    def __init__(self, name, password, email, contactEmail, image_file, cell, aboutMe):
         self.name = name
         self.password = generate_password_hash(password)
         self.email = email
+        self.contactEmail = contactEmail
         self.image_file = image_file
         self.tel = cell
         self.description = aboutMe
@@ -50,14 +52,14 @@ class Post(db.Model):
     pessoas_no_local = db.Column(db.Integer,nullable=False)
     mobiliado = db.Column(db.Boolean, nullable = False,default=False)
     comoditie = db.relationship('Comoditie',backref='Post',lazy = True,uselist=False)
-    #image = db.relationship('Image',backref='Post',lazy = True)
     favorite = db.relationship('User_has_Post_as_favorite',backref='Post',lazy = True)
     date_posted = db.Column(db.DateTime,nullable=False,default=datetime.utcnow())
+    title_filter = db.Column(db.Text,nullable=False,default='quarto')
 
     # id do usuário que criou essa tabela, tem que ser igual da class User 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'),nullable=False)
     
-    def __init__(self, title, content, price, address, bairro, cep, city, state, image, n_casa, referencia, mora_local, restricao_sexo, pessoas_no_local, mobiliado, author):
+    def __init__(self, title, content, price, address, bairro, cep, city, state, image, n_casa, referencia, mora_local, restricao_sexo, pessoas_no_local, mobiliado, title_filter, author):
         self.title = title
         self.content = content 
         self.price = price
@@ -73,6 +75,7 @@ class Post(db.Model):
         self.restricao_sexo = restricao_sexo
         self.pessoas_no_local = pessoas_no_local
         self.mobiliado = mobiliado
+        self.title_filter = title_filter
         self.user_id = author
         
     def __repr__(self):
@@ -111,41 +114,8 @@ class User_has_Post_as_favorite(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'),nullable=False)
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'),nullable=False)
-    # id do usuário que criou essa tabela, tem que ser igual da class User 
 
     def __init__(self, user_id,post_id):
         self.user_id = user_id
         self.post_id = post_id
-        #self.date_posted = date_posted
         
-        
-# class User_has_rated_Post(db.Model):
-#     __tablename__ = "post"
-#     id = db.Column(db.Integer, primary_key=True)
-    
-#     # id do usuário que criou essa tabela, tem que ser igual da class User 
-#     user_id = db.Column(db.Integer, db.ForeignKey('user.id'),nullable=False)
-
-#     def __init__(self, content, title,image_file,price,rate,favorite,address,neighborhood,cep,city,state,author):
-#         self.content = content
-#         self.title = title
-#         #self.date_posted = date_posted
-        
-            
-#     def __repr__(self):
-#         return f"Post('{self.title}','{self.date_posted}','{self.image_file}')" 
-
-#class Image(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     url = db.Column(db.Text, nullable=False)
-#     priority = db.Column(db.Integer, nullable=False)
-    
-#     # id do usuário que criou essa tabela, tem que ser igual da class User 
-#     post_id = db.Column(db.Integer, db.ForeignKey('post.id'),nullable=False)
-
-#     def __init__(self, url, priority):
-#         self.url = url
-#         self.priority = priority
-        
-#     def __repr__(self):
-#         return f"Post('{self.url}','{self.priority}','{self.image_file}')" 

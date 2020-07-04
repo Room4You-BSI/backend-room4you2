@@ -11,6 +11,7 @@ from json import dumps
 from http import HTTPStatus
 from http.client import HTTPException
 from datetime import datetime, timedelta
+from unidecode import unidecode
 
 from werkzeug.utils import secure_filename
 
@@ -43,8 +44,7 @@ def add_claims_to_access_token(identity):
         'nbf': now,
         'sub': identity,
         'name': user.name,
-        'img': user.image_file, 
-        'description': user.description
+        'img': user.image_file
     }
 
 #""Flask Functions""
@@ -61,6 +61,7 @@ class Views(object):
             try:
                 name = request.form["nome"]
                 email = request.form["email"]
+                email_cont = request.form["email"]
                 pwd = request.form["password"]
                 img = request.form["userImg"]
                 telPhone = request.form["cell"]
@@ -71,7 +72,7 @@ class Views(object):
                 if existing_user:
                     return Response(dumps({"message": "USER ALREADY EXISTS"}), status=422, mimetype="application/json")
 
-                user = User(name, pwd, email, img, telPhone, aboutMe)
+                user = User(name, pwd, email, email_cont, img, telPhone, aboutMe)
                 db.session.add(user)
                 db.session.commit()
 
@@ -92,7 +93,6 @@ class Views(object):
                 # descricao
                 title = request.form["title"]
                 content = request.form.get("content")
-                #image = request.form["image_file"]
                 price = request.form["price"]
                 address = request.form["address"]
                 bairro = request.form["bairro"]
@@ -100,31 +100,32 @@ class Views(object):
                 city = request.form["city"]
                 state = request.form["state"]
                 image = request.form["imgs"]
-
+                
                 # inicio
                 n_casa = request.form["n_casa"]
                 referencia = request.form["referencia"]
-                mora_local = bool(int(request.form["mora_local"]))
+                mora_local = request.form["mora_local"] == 'true'
                 restricao_sexo  = request.form["restricao_sexo"]
                 pessoas_no_local = request.form["pessoas_no_local"]
-                mobiliado = bool(int(request.form["mobiliado"]))
+                mobiliado = request.form["mobiliado"] == 'true'
                 
                 # comodidades
-                wifi = bool(int(request.form["wifi"]))
-                maquina_lavar = bool(int(request.form["maquina_lavar"]))
-                vaga_carro = bool(int(request.form["vaga_carro"]))
-                refeicao = bool(int(request.form["refeicao"]))
-                suite = bool(int(request.form["suite"]))
-                mesa = bool(int(request.form["mesa"]))
-                ar_condicionado = bool(int(request.form["ar_condicionado"]))
-                tv = bool(int(request.form["tv"]))
-
+                wifi = request.form["wifi"] == 'true'
+                maquina_lavar = request.form["maquina_lavar"] == 'true'
+                vaga_carro = request.form["vaga_carro"] == 'true'
+                refeicao = request.form["refeicao"] == 'true'
+                suite = request.form["suite"] == 'true'
+                mesa = request.form["mesa"] == 'true'
+                ar_condicionado = request.form["ar_condicionado"] == 'true'
+                tv = request.form["tv"] == 'true'
+                
                 # user_id do criador
                 user_id = get_jwt_identity()
 
-                #jwt_data = get_jwt()  # ->pegar todos os dados do jwt 
+                jwt_data = get_jwt()  # ->pegar todos os dados do jwt 
                 
-                current_post = Post(title, content, price, address, bairro, cep, city, state, image, n_casa, referencia, mora_local, restricao_sexo, pessoas_no_local, mobiliado, user_id)
+                titleFilter = unidecode(title.lower() + ' ' + content.lower() + ' ' + address.lower() + ' ' + bairro.lower() + ' ' + city.lower())
+                current_post = Post(title, content, price, address, bairro, cep, city, state, image, n_casa, referencia, mora_local, restricao_sexo, pessoas_no_local, mobiliado, titleFilter, user_id)
                               
                 db.session.add(current_post)
                 db.session.commit()
@@ -178,19 +179,24 @@ class Views(object):
 
             isLogged = get_jwt_identity()
             
+            all_fav = []
+            if isLogged:
+                    favorites = User_has_Post_as_favorite.query.filter_by(user_id=isLogged).all()
+                    for favorite in favorites:
+                        all_fav.append(favorite.post_id)
+
             for post in posts:
                 comoditie = Comoditie.query.filter_by(post_id=post.id).first()
-                favorite = False
-
-                if isLogged:
-                    favorite = User_has_Post_as_favorite.query.filter_by(user_id=isLogged, post_id=post.id).first()
-                    favorite = bool(favorite)
                 
+                favorite = False
+                if (all_fav):
+                    favorite = post.id in all_fav
+
                 all_post.append({
                     'post_id': post.id,
                     'title': post.title,
                     'text': post.content,
-                    'image': post.image,
+                    'image': ((post.image.replace('[', '').replace(']', '')).split(','))[0],
                     'price': post.price,
                     'rate': rateNumb,
                     'distance': post.content,
@@ -243,6 +249,7 @@ class Views(object):
                 favorite = User_has_Post_as_favorite.query.filter_by(user_id=isLogged, post_id=id).first()
                 favorite = bool(favorite)
 
+            #.replace('[', '').replace(']', '').split(',')[0]  -> em js para o array de img
             detail = [{
                 'rate': rateNumb,
                 'favorite': favorite,
@@ -305,11 +312,10 @@ class Views(object):
 
 
     @jwt_required
-    def add_as_favorite(self):
+    def add_as_favorite(self, id_post):
         """Add a relationship between Post and User as Favorite in the database."""
         if request.method == 'POST':
             try:
-                id_post = request.form.get("post_id")
                 userID = get_jwt_identity()
                 
                 already = User_has_Post_as_favorite.query.filter_by(user_id=userID, post_id=id_post).first()
@@ -330,11 +336,10 @@ class Views(object):
         return Response(dumps({"message": "NOT POST"}), status=403, mimetype="application/json")
 
     @jwt_required
-    def remove_favorite(self):  
+    def remove_favorite(self, id_post):  
         """Remove a relationship between Post and User as Favorite in the database."""
         if request.method == 'POST':
             try:
-                id_post = request.form.get("post_id")
                 userID = get_jwt_identity()
                 
                 favorite = User_has_Post_as_favorite.query.filter_by(user_id=userID, post_id=id_post).first()
@@ -352,25 +357,72 @@ class Views(object):
 
         return Response(dumps({"message": "NOT POST"}), status=403, mimetype="application/json")
 
-    def filter(self):
+    @jwt_optional
+    def search(self):
         """filter data from database."""
         try:
             #http://127.0.0.1:5000/filter?city=araraquara
             # pega a query -> request.args
             # pega uma chave especifica "request.args.get('city')"
             # print(request.args.gets("title"))
-        
-            info = request.args['title']
-            search = "%{}%".format(info)
             
-            posts = db.session.query(Post).filter(Post.title.ilike(search)).all()
-           
-            if posts:
-                print(posts)
-                return Response(dumps({"message": 'SUCCESS'}), status=200, mimetype="application/json")
-            else:
+            all_post = []
+
+            text_s = request.args['text']
+            text_s = "%{}%".format(text_s)
+            text_s = unidecode(text_s.lower())
+            
+            posts = db.session.query(Post).filter(Post.title_filter.ilike(text_s)).all()
+
+            if not posts:
                 return Response(dumps({"message": 'NO RESULTS'}), status=404, mimetype="application/json")
 
+            # quando tiver implementado rate alterar:
+            rateNumb = random.randint(2,5)
+
+            isLogged = get_jwt_identity()
+            
+            for post in posts:
+                comoditie = Comoditie.query.filter_by(post_id=post.id).first()
+                favorite = False
+
+                if isLogged:
+                    favorite = User_has_Post_as_favorite.query.filter_by(user_id=isLogged, post_id=post.id).first()
+                    favorite = bool(favorite)
+                
+                all_post.append({
+                    'post_id': post.id,
+                    'title': post.title,
+                    'text': post.content,
+                    'image': ((post.image.replace('[', '').replace(']', '')).split(','))[0],
+                    'price': post.price,
+                    'rate': rateNumb,
+                    'distance': post.content,
+                    'favorite': favorite,
+                    'attributesColumn1': [
+                        {
+                            'label': 'Wifi', 
+                            'available': bool(comoditie.wifi)
+                        },
+                        {
+                            'label': 'Estacionamento', 
+                            'available': bool(comoditie.vaga_carro)
+                        },
+                    ],
+                    'attributesColumn2': [
+                        {
+                            'label': 'Refeições', 
+                            'available': bool(comoditie.refeicao)
+                        }, 
+                        {
+                            'label': 'Suite', 
+                            'available': bool(comoditie.suite)
+                        }
+                    ]
+                })
+
+            return Response(dumps(all_post), status=200, mimetype="application/json")    
+            
         except HTTPException as e:
             return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
 
@@ -385,6 +437,7 @@ class Views(object):
             author = [{
                 'name': user.name,
                 'email': user.email,
+                'email_contato': user.contactEmail, 
                 'tel': user.tel, 
                 'description': user.description,
                 'img': user.image_file
@@ -394,20 +447,177 @@ class Views(object):
         except HTTPException as e:
             return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
 
-
-    def upload_photo(self, paste='room'):
+    
+    def upload_photo(self):
         """Upload Photos Service"""
         if request.method == 'POST':
             try:    
-                img_file = request.files.getlist('userImg')
+                img_file = request.files['images_file']
+                
+                if not img_file:
+                    return Response(dumps({"message": 'NOT UPLOADED'}), status=422, mimetype="application/json")
+
+                if (img_file.content_type != 'image/png') and (img_file.content_type != 'image/jpeg'):
+                    return Response(dumps({"message": 'ITS NOT IMAGE'}), status=422, mimetype="application/json")
+
+                now = datetime.timestamp(datetime.now())
+                bucket = 'room4you-photos' 
+                base_url = 'https://room4you-photos.s3-sa-east-1.amazonaws.com/'
+                is_public = 'public-read'
+                filename = secure_filename(img_file.filename) + '-' + str(now)  
+                content_type = img_file.content_type
+
+                client = boto3.client('s3',
+                                    region_name = 'sa-east-1',
+                                    endpoint_url = base_url,
+                                    aws_access_key_id = 'AKIA24MFWIT23R3GFMY7',
+                                    aws_secret_access_key = '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')
+                
+                resp = client.put_object(Body=img_file,
+                                ACL=is_public,
+                                Bucket=bucket,
+                                Key=filename,
+                                ContentType=content_type
+                                )
+                
+                img_resp = base_url + bucket + '/' + filename
+
+                return Response(dumps({'link': img_resp}), status=201, mimetype="application/json")
+
+            except HTTPException as e:
+                return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
+
+        return Response(dumps({"message": "NOT POST"}), status=403, mimetype="application/json")
+
+    
+    @jwt_required
+    def favorite_list(self):
+        """List the favorite rooms from database."""
+        try:
+            # quando tiver implementado rate alterar:
+            rateNumb = random.randint(2,5)
+
+            userID = get_jwt_identity()
+            favorites = User_has_Post_as_favorite.query.filter_by(user_id=userID).all()
+
+            if not favorites:
+                return Response(dumps({"message": "WITHOUT FAVORITE"}), status=404, mimetype="application/json")
+
+            all_post = []
+            for favorite in favorites:
+                post = Post.query.filter_by(id=favorite.post_id).first()
+                comoditie = Comoditie.query.filter_by(post_id=post.id).first()
+                
+                all_post.append({
+                    'post_id': post.id,
+                    'title': post.title,
+                    'text': post.content,
+                    'image': ((post.image.replace('[', '').replace(']', '')).split(','))[0],
+                    'price': post.price,
+                    'rate': rateNumb,
+                    'distance': post.content,
+                    'favorite': True,
+                    'attributesColumn1': [
+                        {
+                            'label': 'Wifi', 
+                            'available': bool(comoditie.wifi)
+                        },
+                        {
+                            'label': 'Estacionamento', 
+                            'available': bool(comoditie.vaga_carro)
+                        },
+                    ],
+                    'attributesColumn2': [
+                        {
+                            'label': 'Refeições', 
+                            'available': bool(comoditie.refeicao)
+                        }, 
+                        {
+                            'label': 'Suite', 
+                            'available': bool(comoditie.suite)
+                        }
+                    ]
+                })
+            
+            return Response(dumps(all_post), status=200, mimetype="application/json")
+        except HTTPException as e:
+            return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
+        
+        
+    @jwt_required
+    def my_posts_list(self):
+        """List the favorite rooms from database."""
+        try:
+            # quando tiver implementado rate alterar:
+            rateNumb = random.randint(2,5)
+            
+            userID = get_jwt_identity()
+            posts = Post.query.filter_by(user_id=userID).all()
+
+            if not posts:
+                return Response(dumps({"message": "WITHOUT POSTS"}), status=404, mimetype="application/json")
+
+            all_fav = []
+            favorites = User_has_Post_as_favorite.query.filter_by(user_id=userID).all()
+            for favorite in favorites:
+                all_fav.append(favorite.post_id)
+
+            all_post = []
+            for post in posts:
+                comoditie = Comoditie.query.filter_by(post_id=post.id).first()
+
+                favorite = False
+                if (all_fav):
+                    favorite = post.id in all_fav
+                
+                all_post.append({
+                    'post_id': post.id,
+                    'title': post.title,
+                    'text': post.content,
+                    'image': ((post.image.replace('[', '').replace(']', '')).split(','))[0],
+                    'price': post.price,
+                    'rate': rateNumb,
+                    'distance': post.content,
+                    'favorite': favorite,
+                    'attributesColumn1': [
+                        {
+                            'label': 'Wifi', 
+                            'available': bool(comoditie.wifi)
+                        },
+                        {
+                            'label': 'Estacionamento', 
+                            'available': bool(comoditie.vaga_carro)
+                        },
+                    ],
+                    'attributesColumn2': [
+                        {
+                            'label': 'Refeições', 
+                            'available': bool(comoditie.refeicao)
+                        }, 
+                        {
+                            'label': 'Suite', 
+                            'available': bool(comoditie.suite)
+                        }
+                    ]
+                })
+            
+            return Response(dumps(all_post), status=200, mimetype="application/json")
+        except HTTPException as e:
+            return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
+        
+    def upload_photo_list(self):
+        """Upload Photos List Service"""
+        if request.method == 'POST':
+            try:    
+                img_file = request.files.getlist('images_file')
 
                 if not img_file or img_file[0].filename == '':
                     return Response(dumps({"message": 'NOT UPLOADED'}), status=422, mimetype="application/json")
 
                 image_list = []
                 qtt_images = len(img_file)
-                now = now = datetime.utcnow()
-                bucket = paste + '-room4you-photos' 
+                now = datetime.timestamp(datetime.now())
+                bucket = 'room4you-photos'  
                 base_url = 'https://room4you-photos.s3-sa-east-1.amazonaws.com/'
                 is_public = 'public-read'
 
@@ -421,7 +631,7 @@ class Views(object):
                     if (img.content_type != 'image/png') and (img.content_type != 'image/jpeg'):
                         return Response(dumps({"message": 'ITS NOT IMAGE'}), status=422, mimetype="application/json")
 
-                    filename = paste + '-' + secure_filename(img.filename) + '-' + str(now)  
+                    filename = secure_filename(img.filename) + '-' + str(now)  
                     content_type = img.content_type
                     
                     resp = client.put_object(Body=img,
@@ -438,11 +648,6 @@ class Views(object):
             except HTTPException as e:
                 return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
 
-        return Response(dumps({"message": "NOT POST"}), status=403, mimetype="application/json")
-        
-        
-        
-        
-        
+        return Response(dumps({"message": "NOT POST"}), status=403, mimetype="application/json")    
        
         
