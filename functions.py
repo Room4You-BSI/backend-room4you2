@@ -174,9 +174,6 @@ class Views(object):
             posts = db.session.query(Post).all()
             all_post = []
 
-            # quando tiver implementado rate alterar:
-            rateNumb = random.randint(2,5)
-
             isLogged = get_jwt_identity()
             
             all_fav = []
@@ -192,6 +189,9 @@ class Views(object):
                 if (all_fav):
                     favorite = post.id in all_fav
 
+                # quando tiver implementado rate alterar:
+                rateNumb = random.randint(2,5)
+
                 all_post.append({
                     'post_id': post.id,
                     'title': post.title,
@@ -199,7 +199,7 @@ class Views(object):
                     'image': ((post.image.replace('[', '').replace(']', '')).split(','))[0],
                     'price': post.price,
                     'rate': rateNumb,
-                    'distance': post.content,
+                    'distance': post.referencia,
                     'favorite': favorite,
                     'attributesColumn1': [
                         {
@@ -377,9 +377,6 @@ class Views(object):
             if not posts:
                 return Response(dumps({"message": 'NO RESULTS'}), status=404, mimetype="application/json")
 
-            # quando tiver implementado rate alterar:
-            rateNumb = random.randint(2,5)
-
             isLogged = get_jwt_identity()
             
             for post in posts:
@@ -390,6 +387,9 @@ class Views(object):
                     favorite = User_has_Post_as_favorite.query.filter_by(user_id=isLogged, post_id=post.id).first()
                     favorite = bool(favorite)
                 
+                # quando tiver implementado rate alterar:
+                rateNumb = random.randint(2,5)
+                
                 all_post.append({
                     'post_id': post.id,
                     'title': post.title,
@@ -397,7 +397,7 @@ class Views(object):
                     'image': ((post.image.replace('[', '').replace(']', '')).split(','))[0],
                     'price': post.price,
                     'rate': rateNumb,
-                    'distance': post.content,
+                    'distance': post.referencia,
                     'favorite': favorite,
                     'attributesColumn1': [
                         {
@@ -494,9 +494,6 @@ class Views(object):
     def favorite_list(self):
         """List the favorite rooms from database."""
         try:
-            # quando tiver implementado rate alterar:
-            rateNumb = random.randint(2,5)
-
             userID = get_jwt_identity()
             favorites = User_has_Post_as_favorite.query.filter_by(user_id=userID).all()
 
@@ -508,6 +505,9 @@ class Views(object):
                 post = Post.query.filter_by(id=favorite.post_id).first()
                 comoditie = Comoditie.query.filter_by(post_id=post.id).first()
                 
+                # quando tiver implementado rate alterar:
+                rateNumb = random.randint(2,5)
+
                 all_post.append({
                     'post_id': post.id,
                     'title': post.title,
@@ -515,7 +515,7 @@ class Views(object):
                     'image': ((post.image.replace('[', '').replace(']', '')).split(','))[0],
                     'price': post.price,
                     'rate': rateNumb,
-                    'distance': post.content,
+                    'distance': post.referencia,
                     'favorite': True,
                     'attributesColumn1': [
                         {
@@ -548,9 +548,6 @@ class Views(object):
     def my_posts_list(self):
         """List the favorite rooms from database."""
         try:
-            # quando tiver implementado rate alterar:
-            rateNumb = random.randint(2,5)
-            
             userID = get_jwt_identity()
             posts = Post.query.filter_by(user_id=userID).all()
 
@@ -570,6 +567,9 @@ class Views(object):
                 if (all_fav):
                     favorite = post.id in all_fav
                 
+                # quando tiver implementado rate alterar:
+                rateNumb = random.randint(2,5)
+
                 all_post.append({
                     'post_id': post.id,
                     'title': post.title,
@@ -577,7 +577,7 @@ class Views(object):
                     'image': ((post.image.replace('[', '').replace(']', '')).split(','))[0],
                     'price': post.price,
                     'rate': rateNumb,
-                    'distance': post.content,
+                    'distance': post.referencia,
                     'favorite': favorite,
                     'attributesColumn1': [
                         {
