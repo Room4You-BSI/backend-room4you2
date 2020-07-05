@@ -89,55 +89,55 @@ class Views(object):
         """Register a Post in the database."""
         if request.method == 'POST':
             try:
-                
+                infos = request.json
                 # descricao
-                title = request.form["title"]
-                content = request.form.get("content")
-                price = request.form["price"]
-                address = request.form["address"]
-                bairro = request.form["bairro"]
-                cep = request.form["cep"]
-                city = request.form["city"]
-                state = request.form["state"]
-                image = request.form["imgs"]
+                title = infos["title"]
+                content = infos["description"]
+                price = infos["price"]
+                address = infos["rua"]
+                bairro = infos["bairro"]
+                cep = infos["cep"]
+                city = infos["cidade"]
+                state = infos["estado"]
+                image = str(infos["imgs"])
                 
                 # inicio
-                n_casa = request.form["n_casa"]
-                referencia = request.form["referencia"]
-                mora_local = request.form["mora_local"] == 'true'
-                restricao_sexo  = request.form["restricao_sexo"]
-                pessoas_no_local = request.form["pessoas_no_local"]
-                mobiliado = request.form["mobiliado"] == 'true'
+                n_casa = infos["n_casa"]
+                referencia = infos["referencia"]
+                mora_local = infos["mora_local"] 
+                restricao_sexo  = infos["restricao_sexo"]
+                pessoas_no_local = infos["pessoas_no_local"]
+                mobiliado = infos["mobiliado"] 
                 
                 # comodidades
-                wifi = request.form["wifi"] == 'true'
-                maquina_lavar = request.form["maquina_lavar"] == 'true'
-                vaga_carro = request.form["vaga_carro"] == 'true'
-                refeicao = request.form["refeicao"] == 'true'
-                suite = request.form["suite"] == 'true'
-                mesa = request.form["mesa"] == 'true'
-                ar_condicionado = request.form["ar_condicionado"] == 'true'
-                tv = request.form["tv"] == 'true'
+                wifi = infos["wifi"] 
+                maquina_lavar = infos["maquina_lavar"] 
+                vaga_carro = infos["vaga_carro"] 
+                refeicao = infos["meals"] 
+                suite = infos["suite"] 
+                mesa = infos["mesa"]
+                ar_condicionado = infos["ar_condicionado"] 
+                tv = infos["tv"] 
                 
                 # user_id do criador
                 user_id = get_jwt_identity()
 
-                jwt_data = get_jwt()  # ->pegar todos os dados do jwt 
+                #jwt_data = get_jwt()  # ->pegar todos os dados do jwt 
                 
                 titleFilter = unidecode(title.lower() + ' ' + content.lower() + ' ' + address.lower() + ' ' + bairro.lower() + ' ' + city.lower())
                 current_post = Post(title, content, price, address, bairro, cep, city, state, image, n_casa, referencia, mora_local, restricao_sexo, pessoas_no_local, mobiliado, titleFilter, user_id)
-                              
+                
                 db.session.add(current_post)
                 db.session.commit()
 
                 postID = current_post.id  
 
                 current_comoditie = Comoditie(wifi, maquina_lavar, vaga_carro, refeicao, suite, mesa, ar_condicionado, tv, postID)
-
+              
                 db.session.add(current_comoditie)
                 db.session.commit()
 
-                return Response(dumps({"message": "SUCCESS"}), status=201, mimetype="application/json")
+                return Response(dumps({"message": "SUCCESS", 'post_id': postID}), status=201, mimetype="application/json")
 
             except HTTPException as e:
                 return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
@@ -172,10 +172,13 @@ class Views(object):
         """List the rooms from database."""
         try:
             posts = db.session.query(Post).all()
+
+            if not posts:
+                return Response(dumps({"message": "NO RESULTS"}), status=404, mimetype="application/json")
+            
             all_post = []
 
             isLogged = get_jwt_identity()
-            
             all_fav = []
             if isLogged:
                     favorites = User_has_Post_as_favorite.query.filter_by(user_id=isLogged).all()
@@ -191,12 +194,19 @@ class Views(object):
 
                 # quando tiver implementado rate alterar:
                 rateNumb = random.randint(2,5)
+                
+                image = eval(post.image)
+                if (len(image) > 1):
+                    image = image[0]
+                else:
+                    if(len(image) == 0):
+                        image = ''
 
                 all_post.append({
                     'post_id': post.id,
                     'title': post.title,
                     'text': post.content,
-                    'image': ((post.image.replace('[', '').replace(']', '')).split(','))[0],
+                    'image': image,
                     'price': post.price,
                     'rate': rateNumb,
                     'distance': post.referencia,
@@ -204,21 +214,21 @@ class Views(object):
                     'attributesColumn1': [
                         {
                             'label': 'Wifi', 
-                            'available': bool(comoditie.wifi)
+                            'available': comoditie.wifi
                         },
                         {
                             'label': 'Estacionamento', 
-                            'available': bool(comoditie.vaga_carro)
+                            'available': comoditie.vaga_carro
                         },
                     ],
                     'attributesColumn2': [
                         {
                             'label': 'Refeições', 
-                            'available': bool(comoditie.refeicao)
+                            'available': comoditie.refeicao
                         }, 
                         {
                             'label': 'Suite', 
-                            'available': bool(comoditie.suite)
+                            'available': comoditie.suite
                         }
                     ]
                 })
@@ -249,14 +259,13 @@ class Views(object):
                 favorite = User_has_Post_as_favorite.query.filter_by(user_id=isLogged, post_id=id).first()
                 favorite = bool(favorite)
 
-            #.replace('[', '').replace(']', '').split(',')[0]  -> em js para o array de img
-            detail = [{
+            detail = {
                 'rate': rateNumb,
                 'favorite': favorite,
                 'post_id': id,
                 'title': post.title,
                 'text': post.content,
-                'image': post.image,
+                'image': eval(post.image),
                 'price': post.price,
                 'address': post.address, 
                 'bairro': post.bairro, 
@@ -264,46 +273,46 @@ class Views(object):
                 'city': post.city,
                 'state': post.state,
                 'n_casa': post.n_casa,  
-                'mora_local': bool(int(post.mora_local)),
+                'mora_local': post.mora_local,
                 'referencia': post.referencia,
                 'restricao_sexo': post.restricao_sexo,
                 'pessoas_no_local': post.pessoas_no_local,
-                'mobiliado': bool(int(post.mobiliado)),
+                'mobiliado': post.mobiliado,
                 'attributes': [
                     {
                         'label': 'wifi', 
-                        'available': bool(int(comoditie.wifi))
+                        'available': comoditie.wifi
                     },
                     {
                         'label': 'maquina_lavar', 
-                        'available': bool(int(comoditie.maquina_lavar))
+                        'available': comoditie.maquina_lavar
                     },
                     {
                         'label': 'vaga_carro', 
-                        'available': bool(int(comoditie.vaga_carro))
+                        'available': comoditie.vaga_carro
                     },
                     {
                         'label': 'refeições', 
-                        'available': bool(int(comoditie.refeicao))
+                        'available': comoditie.refeicao
                     },
                     {
                         'label': 'suite', 
-                        'available': bool(int(comoditie.suite))
+                        'available': comoditie.suite
                     },
                     {
                         'label': 'mesa', 
-                        'available': bool(int(comoditie.mesa))
+                        'available': comoditie.mesa
                     },
                     {
                         'label': 'ar_condicionado', 
-                        'available': bool(int(comoditie.ar_condicionado))
+                        'available': comoditie.ar_condicionado
                     },
                     {
                         'label': 'tv', 
-                        'available': bool(int(comoditie.tv))
+                        'available': comoditie.tv
                     }
                 ]
-            }]
+            }
         
             return Response(dumps(detail), status=200, mimetype="application/json")
 
@@ -312,12 +321,14 @@ class Views(object):
 
 
     @jwt_required
-    def add_as_favorite(self, id_post):
+    def add_as_favorite(self):
         """Add a relationship between Post and User as Favorite in the database."""
         if request.method == 'POST':
             try:
                 userID = get_jwt_identity()
-                
+                info = request.json
+                id_post = info["post_id"]
+
                 already = User_has_Post_as_favorite.query.filter_by(user_id=userID, post_id=id_post).first()
                 
                 if already:
@@ -336,12 +347,14 @@ class Views(object):
         return Response(dumps({"message": "NOT POST"}), status=403, mimetype="application/json")
 
     @jwt_required
-    def remove_favorite(self, id_post):  
+    def remove_favorite(self):  
         """Remove a relationship between Post and User as Favorite in the database."""
         if request.method == 'POST':
             try:
                 userID = get_jwt_identity()
-                
+                info = request.json
+                id_post = info["post_id"]
+
                 favorite = User_has_Post_as_favorite.query.filter_by(user_id=userID, post_id=id_post).first()
 
                 if not favorite:
@@ -389,12 +402,19 @@ class Views(object):
                 
                 # quando tiver implementado rate alterar:
                 rateNumb = random.randint(2,5)
-                
+
+                image = eval(post.image)
+                if (len(image) > 1):
+                    image = image[0]
+                else:
+                    if(len(image) == 0):
+                        image = ''
+
                 all_post.append({
                     'post_id': post.id,
                     'title': post.title,
                     'text': post.content,
-                    'image': ((post.image.replace('[', '').replace(']', '')).split(','))[0],
+                    'image': image,
                     'price': post.price,
                     'rate': rateNumb,
                     'distance': post.referencia,
@@ -402,21 +422,21 @@ class Views(object):
                     'attributesColumn1': [
                         {
                             'label': 'Wifi', 
-                            'available': bool(comoditie.wifi)
+                            'available': comoditie.wifi
                         },
                         {
                             'label': 'Estacionamento', 
-                            'available': bool(comoditie.vaga_carro)
+                            'available': comoditie.vaga_carro
                         },
                     ],
                     'attributesColumn2': [
                         {
                             'label': 'Refeições', 
-                            'available': bool(comoditie.refeicao)
+                            'available': comoditie.refeicao
                         }, 
                         {
                             'label': 'Suite', 
-                            'available': bool(comoditie.suite)
+                            'available': comoditie.suite
                         }
                     ]
                 })
@@ -430,18 +450,18 @@ class Views(object):
     def post_author(self, id):
         try:
             post = Post.query.filter_by(id=id).first()
-        
+            
             user_id = post.user_id
             user = User.query.filter_by(id=user_id).first()
 
-            author = [{
+            author = {
                 'name': user.name,
                 'email': user.email,
                 'email_contato': user.contactEmail, 
                 'tel': user.tel, 
                 'description': user.description,
                 'img': user.image_file
-            }]
+            }
             return Response(dumps(author), status=200, mimetype="application/json")
 
         except HTTPException as e:
@@ -508,11 +528,18 @@ class Views(object):
                 # quando tiver implementado rate alterar:
                 rateNumb = random.randint(2,5)
 
+                image = eval(post.image)
+                if (len(image) > 1):
+                    image = image[0]
+                else:
+                    if(len(image) == 0):
+                        image = ''
+
                 all_post.append({
                     'post_id': post.id,
                     'title': post.title,
                     'text': post.content,
-                    'image': ((post.image.replace('[', '').replace(']', '')).split(','))[0],
+                    'image': image,
                     'price': post.price,
                     'rate': rateNumb,
                     'distance': post.referencia,
@@ -520,21 +547,21 @@ class Views(object):
                     'attributesColumn1': [
                         {
                             'label': 'Wifi', 
-                            'available': bool(comoditie.wifi)
+                            'available': comoditie.wifi
                         },
                         {
                             'label': 'Estacionamento', 
-                            'available': bool(comoditie.vaga_carro)
+                            'available': comoditie.vaga_carro
                         },
                     ],
                     'attributesColumn2': [
                         {
                             'label': 'Refeições', 
-                            'available': bool(comoditie.refeicao)
+                            'available': comoditie.refeicao
                         }, 
                         {
                             'label': 'Suite', 
-                            'available': bool(comoditie.suite)
+                            'available': comoditie.suite
                         }
                     ]
                 })
@@ -570,11 +597,18 @@ class Views(object):
                 # quando tiver implementado rate alterar:
                 rateNumb = random.randint(2,5)
 
+                image = eval(post.image)
+                if (len(image) > 1):
+                    image = image[0]
+                else:
+                    if(len(image) == 0):
+                        image = ''
+
                 all_post.append({
                     'post_id': post.id,
                     'title': post.title,
                     'text': post.content,
-                    'image': ((post.image.replace('[', '').replace(']', '')).split(','))[0],
+                    'image': image,
                     'price': post.price,
                     'rate': rateNumb,
                     'distance': post.referencia,
@@ -582,21 +616,21 @@ class Views(object):
                     'attributesColumn1': [
                         {
                             'label': 'Wifi', 
-                            'available': bool(comoditie.wifi)
+                            'available': comoditie.wifi
                         },
                         {
                             'label': 'Estacionamento', 
-                            'available': bool(comoditie.vaga_carro)
+                            'available': comoditie.vaga_carro
                         },
                     ],
                     'attributesColumn2': [
                         {
                             'label': 'Refeições', 
-                            'available': bool(comoditie.refeicao)
+                            'available': comoditie.refeicao
                         }, 
                         {
                             'label': 'Suite', 
-                            'available': bool(comoditie.suite)
+                            'available': comoditie.suite
                         }
                     ]
                 })
@@ -608,6 +642,7 @@ class Views(object):
     def upload_photo_list(self):
         """Upload Photos List Service"""
         if request.method == 'POST':
+            header['client_max_body_size'] = 0
             try:    
                 img_file = request.files.getlist('images_file')
 
@@ -650,4 +685,75 @@ class Views(object):
 
         return Response(dumps({"message": "NOT POST"}), status=403, mimetype="application/json")    
        
-        
+    @jwt_optional
+    def filter(self):
+        """List the rooms from database."""
+        try:
+            arg = request.query_string
+            len(arg.decode('ascii').split('&'))
+            posts = db.session.query(Post).all()
+
+            if not posts:
+                return Response(dumps({"message": "NO RESULTS"}), status=404, mimetype="application/json")
+            
+            all_post = []
+
+            isLogged = get_jwt_identity()
+            all_fav = []
+            if isLogged:
+                    favorites = User_has_Post_as_favorite.query.filter_by(user_id=isLogged).all()
+                    for favorite in favorites:
+                        all_fav.append(favorite.post_id)
+
+            for post in posts:
+                comoditie = Comoditie.query.filter_by(post_id=post.id).first()
+                
+                favorite = False
+                if (all_fav):
+                    favorite = post.id in all_fav
+
+                # quando tiver implementado rate alterar:
+                rateNumb = random.randint(2,5)
+                
+                image = eval(post.image)
+                if (len(image) > 1):
+                    image = image[0]
+                else:
+                    if(len(image) == 0):
+                        image = ''
+
+                all_post.append({
+                    'post_id': post.id,
+                    'title': post.title,
+                    'text': post.content,
+                    'image': image,
+                    'price': post.price,
+                    'rate': rateNumb,
+                    'distance': post.referencia,
+                    'favorite': favorite,
+                    'attributesColumn1': [
+                        {
+                            'label': 'Wifi', 
+                            'available': comoditie.wifi
+                        },
+                        {
+                            'label': 'Estacionamento', 
+                            'available': comoditie.vaga_carro
+                        },
+                    ],
+                    'attributesColumn2': [
+                        {
+                            'label': 'Refeições', 
+                            'available': comoditie.refeicao
+                        }, 
+                        {
+                            'label': 'Suite', 
+                            'available': comoditie.suite
+                        }
+                    ]
+                })
+            
+            return Response(dumps(all_post), status=200, mimetype="application/json")
+
+        except HTTPException as e:
+            return Response(dumps({"message": str(e)}), status=500, mimetype="application/json")
