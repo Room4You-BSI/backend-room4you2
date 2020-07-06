@@ -1,9 +1,10 @@
-# Room4You (SQLite + Flask Backend)
+# Room4You (Flask Backend)
 
 ```
 Python 3.8.3rc1
 Flask 1.1.2
 Werkzeug 1.0.1
+SQLite version 3.32.3
 ```
 
 ## How to run the project locally
